@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fft
+
+# np.convolve !!!
+
 T = 1
 fs1 = 10000
 fs3 = 200
