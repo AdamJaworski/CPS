@@ -14,7 +14,7 @@ def get_non_silent_chunks(audio: np.ndarray) -> list:
     :return: list of audio chunks
     """
     noise_lvl = utilities.estimate_noise_level(audio)
-    non_silent_intervals = librosa.effects.split(audio, top_db=-noise_lvl, hop_length=64, frame_length=128)
+    non_silent_intervals = librosa.effects.split(audio, top_db=-noise_lvl, hop_length=32, frame_length=128)
     audio_segments = []
     for start_idx, end_idx in non_silent_intervals:
         segment = audio[start_idx:end_idx]
@@ -31,20 +31,20 @@ def main(file: str) -> None:
     audio, fs = librosa.load(audio_path + file)
     audio = filters.select_freq(audio, fs)
 
-    #
-    # for i in range(3):
-    #     audio = utilities.spectral_subtraction_noise(audio, fs)
+    while utilities.estimate_noise_level(audio) > -55:
+        audio = utilities.spectral_subtraction(audio, fs, 512, 128) #512 128 range(2)
 
     audio_chunks = get_non_silent_chunks(audio)
     code = ''
     for chunk in audio_chunks:
         code += codes.extract_number(chunk, fs)
     print(code)
+    # print(len(code))
 
     # # audio = utilities.segment_normalization(audio, fs)
 
 
 if __name__ == "__main__":
-    # main(r'challenge 2022.wav')
+    main(r'challenge 2022.wav')
     for i in range(10):
         main(rf's{i}.wav')

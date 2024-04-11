@@ -79,32 +79,42 @@ def estimate_noise_level(audio, frame_length=2048, hop_length=512):
     energy_db = librosa.power_to_db(energy, ref=np.max)
 
     # Assume the lower 10th percentile of energy frames are noise
-    noise_frames_db = np.percentile(energy_db, 10)
+    noise_frames_db = np.percentile(energy_db, 15)
 
     return noise_frames_db
 
 
-def spectral_subtraction_noise(signal, sr, n_fft=2048, hop_length=512):
+def spectral_subtraction(signal, sr, n_fft=2048, hop_length=512):
     """
-    Perform spectral subtraction assuming the last second of the audio is noise.
+    Perform spectral subtraction by estimating noise from the last 3 seconds of the audio.
 
     Parameters:
-    - signal: The input audio signal (numpy array).
+    - signal: Input audio signal (numpy array).
     - sr: Sampling rate of the audio signal.
-    - n_fft: The number of data points used in each block for the FFT.
-    - hop_length: The number of samples between successive frames.
+    - n_fft: Number of FFT points.
+    - hop_length: Hop length for FFT.
 
     Returns:
-    - The denoised audio signal (numpy array).
+    - Denoised audio signal (numpy array).
     """
-    # Estimate noise from the last second of the audio
-    noise_frames = sr // hop_length
-    stft = librosa.stft(signal, n_fft=n_fft, hop_length=hop_length)
-    noise_estimation = np.mean(np.abs(stft[:, -noise_frames:]), axis=1, keepdims=True)
+    # Calculate the number of samples corresponding to last 3 seconds
+    noise_samples = 3 * sr
 
-    # Perform spectral subtraction
-    subtracted_magnitude = np.maximum(np.abs(stft) - noise_estimation, 0)
-    phase = np.angle(stft)
+    # Ensure the signal is long enough for this operation
+    if len(signal) < noise_samples:
+        raise ValueError("Signal is shorter than 3 seconds.")
+
+    # Use the last 3 seconds of the signal for noise estimation
+    noise_segment = signal[-noise_samples:]
+    noise_stft = librosa.stft(noise_segment, n_fft=n_fft, hop_length=hop_length)
+    noise_estimation = np.mean(np.abs(noise_stft), axis=1, keepdims=True)
+
+    # Perform STFT on the original signal
+    signal_stft = librosa.stft(signal, n_fft=n_fft, hop_length=hop_length)
+
+    # Spectral subtraction
+    subtracted_magnitude = np.maximum(np.abs(signal_stft) - noise_estimation, 0)
+    phase = np.angle(signal_stft)
     denoised_stft = subtracted_magnitude * np.exp(1j * phase)
 
     # Inverse STFT to convert back to time domain
