@@ -14,7 +14,7 @@ d = x - a * np.concatenate(([0], x[:-1]))
 def lab1_kwant(d):
     min_val = np.min(d)
     max_val = np.max(d)
-    levels = 16
+    levels = 16 #32
     step_size = (max_val - min_val) / (levels - 1)
 
     quantized_d = np.round((d - min_val) / step_size) * step_size + min_val
